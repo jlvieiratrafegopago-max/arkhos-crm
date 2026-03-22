@@ -14,21 +14,22 @@ st.set_page_config(
     page_icon="⚖️"
 )
 
-# Estilização Padrão Arkhos (Segura)
+# Estilização High-End Arkhos
 st.markdown("""
     <style>
     .stApp { background-color: #1a1a1a; color: #ffffff; }
     [data-testid="stSidebar"] { background-color: #121212; }
     h1, h2, h3, p, span, label { color: #e0e0e0 !important; }
     
-    /* Cores dos campos de entrada */
+    /* Remove as instruções automáticas 'Press Enter' */
+    [data-testid="stInputInstructions"] { display: none !important; }
+
     .stTextInput>div>div>input, .stSelectbox>div>div>select, .stTextArea>div>div>textarea {
         color: #ffffff !important; 
         background-color: #333333 !important; 
         border: 1px solid #444;
     }
 
-    /* Botão Dourado */
     div.stButton > button {
         background-color: #d4af37 !important;
         color: #000000 !important;
@@ -55,7 +56,7 @@ MINHA_CHAVE_MESTRA = "arkhos2026"
 is_admin = st.query_params.get("admin") == MINHA_CHAVE_MESTRA
 
 # ==========================================
-# 3. FUNÇÕES DE DADOS (JSON)
+# 3. FUNÇÕES DE DADOS (JSON LOCAL)
 # ==========================================
 DB_FILE = "dados_leads.json"
 
@@ -72,8 +73,14 @@ def salvar_todos_dados(dados):
     with open(DB_FILE, "w") as f: json.dump(dados, f, indent=4)
 
 # ==========================================
-# 4. BARRA LATERAL
+# 4. BARRA LATERAL (CONFIGURAÇÃO DA LOGO)
 # ==========================================
+# Tentativa direta de carregar a logo
+if os.path.exists("logo.png"):
+    st.sidebar.image("logo.png", use_container_width=True)
+else:
+    st.sidebar.info("Aguardando logo.png...")
+
 st.sidebar.title("Arkhos Tech & Media")
 st.sidebar.markdown("---")
 
@@ -91,12 +98,12 @@ LISTA_STATUS = ["Novo", "Em Contato", "Reunião Agendada", "Proposta Enviada", "
 if tela in ["Formulário de Briefing", "Visualizar Briefing"]:
     st.header("📋 Diagnóstico Estratégico Arkhos")
     
-    # SEÇÃO 1: PERFIL (FORA DO FORM PARA O "OUTROS" FUNCIONAR)
+    # Perfil fora do form para o 'Outros' ser dinâmico
     st.subheader("1. Perfil Profissional")
     col_p1, col_p2 = st.columns(2)
     
     with col_p1:
-        nome_input = st.text_input("Nome do Lead / Clínica / Escritório")
+        nome_lead = st.text_input("Nome do Lead / Clínica / Escritório")
     with col_p2:
         nicho_sel = st.selectbox("Nicho de Atuação", ["Advocacia", "Medicina", "Outros"])
         
@@ -105,8 +112,7 @@ if tela in ["Formulário de Briefing", "Visualizar Briefing"]:
             nicho_extra = st.text_input("Qual o seu nicho profissional?")
             nicho_final = f"Outros: {nicho_extra}" if nicho_extra else "Outros"
 
-    # SEÇÃO 2 E 3: DADOS COMPLEMENTARES (DENTRO DO FORM)
-    with st.form("form_arkhos_principal", clear_on_submit=True):
+    with st.form("form_arkhos_web", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
             contato = st.text_input("WhatsApp com DDD")
@@ -129,12 +135,12 @@ if tela in ["Formulário de Briefing", "Visualizar Briefing"]:
         enviar = st.form_submit_button("ENVIAR ANÁLISE ESTRATÉGICA")
 
         if enviar:
-            if nome_input and contato and detalhes:
+            if nome_lead and contato and detalhes:
                 id_unico = int(datetime.now().timestamp())
                 novo_registro = {
                     "id": id_unico,
                     "data": datetime.now().strftime("%d/%m/%Y"),
-                    "nome": nome_input, 
+                    "nome": nome_lead, 
                     "segmento": nicho_final,
                     "contato": contato,
                     "faturamento": faturamento, 
@@ -148,7 +154,7 @@ if tela in ["Formulário de Briefing", "Visualizar Briefing"]:
                 dados_atuais = carregar_dados()
                 dados_atuais.append(novo_registro)
                 salvar_todos_dados(dados_atuais)
-                st.success(f"✅ Diagnóstico de {nome_input} enviado com sucesso!")
+                st.success(f"✅ Diagnóstico enviado com sucesso!")
             else:
                 st.warning("⚠️ Preencha Nome, Contato e Obstáculo.")
 
@@ -156,10 +162,10 @@ if tela in ["Formulário de Briefing", "Visualizar Briefing"]:
 # 6. TELA: GERENCIAR CRM
 # ==========================================
 elif tela == "Gerenciar CRM" and is_admin:
-    st.header("📊 Gestão de Leads")
+    st.header("📊 Inteligência de Leads & Gestão")
     dados = carregar_dados()
     if dados:
         df = pd.DataFrame(dados)
         st.data_editor(df, use_container_width=True, hide_index=True)
     else:
-        st.info("Nenhum registro encontrado.")
+        st.info("Nenhum registro encontrado no banco local.")
