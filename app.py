@@ -1,10 +1,11 @@
 import streamlit as st
+import json
+import os
 import pandas as pd
 from datetime import datetime
-from supabase import create_client
 
 # ==========================================
-# 1. CONFIGURAÇÃO DA PÁGINA E TEMA (ARKHOS PREMIUM)
+# 1. CONFIGURAÇÃO DA PÁGINA E TEMA
 # ==========================================
 st.set_page_config(
     page_title="Arkhos CRM - Elite Strategic",
@@ -19,6 +20,7 @@ st.markdown("""
     [data-testid="stSidebar"] { background-color: #121212; }
     h1, h2, h3, p, span, label { color: #e0e0e0 !important; }
     
+    /* Remove as instruções automáticas 'Press Enter' */
     [data-testid="stInputInstructions"] { display: none !important; }
 
     .stTextInput>div>div>input, .stSelectbox>div>div>select, .stTextArea>div>div>textarea {
@@ -47,49 +49,47 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. CONEXÃO COM SUPABASE
-# ==========================================
-def conectar_supabase():
-    try:
-        url = st.secrets["SUPABASE_URL"]
-        key = st.secrets["SUPABASE_KEY"]
-        return create_client(url, key)
-    except Exception as e:
-        st.error(f"Erro de conexão com o banco: {e}")
-        return None
-
-# ==========================================
-# 3. CONTROLE DE ACESSO
+# 2. CONTROLE DE ACESSO
 # ==========================================
 MINHA_CHAVE_MESTRA = "arkhos2026" 
 is_admin = st.query_params.get("admin") == MINHA_CHAVE_MESTRA
 
-# URL da sua Logo no GitHub
-URL_LOGO = "https://raw.githubusercontent.com/jlvieiratrafegopago-max/arkhos-crm/main/logo_arkhos.png"
+# ==========================================
+# 3. FUNÇÕES DE DADOS (JSON LOCAL)
+# ==========================================
+DB_FILE = "dados_leads.json"
+
+def carregar_dados():
+    if not os.path.exists(DB_FILE):
+        with open(DB_FILE, "w") as f: json.dump([], f)
+    try:
+        with open(DB_FILE, "r") as f:
+            conteudo = f.read()
+            return json.loads(conteudo) if conteudo else []
+    except: return []
+
+def salvar_todos_dados(dados):
+    with open(DB_FILE, "w") as f: json.dump(dados, f, indent=4)
 
 # ==========================================
-# 4. DEFINIÇÃO DA TELA
+# 4. BARRA LATERAL (CONFIGURAÇÃO CLEAN)
 # ==========================================
+st.sidebar.title("Arkhos Tech & Media")
+st.sidebar.markdown("---")
+
 if is_admin:
-    st.sidebar.title("Arkhos Tech & Media")
     st.sidebar.success("🔑 MODO ADMIN ATIVO")
-    st.sidebar.markdown("---")
-    tela = st.sidebar.radio("Navegação:", ["Gerenciar CRM", "Formulário de Briefing"])
+    tela = st.sidebar.radio("Navegação:", ["Gerenciar CRM", "Visualizar Briefing"])
 else:
     tela = "Formulário de Briefing"
 
-# ==========================================
-# 5. TELA: FORMULÁRIO DE BRIEFING (COM LOGO)
-# ==========================================
-if tela == "Formulário de Briefing":
-    
-    # EXIBE A LOGO APENAS SE NÃO FOR ADMIN (LINK DO CLIENTE)
-    if not is_admin:
-        col_l1, col_l2, col_l3 = st.columns()
-        with col_l2:
-            st.image(URL_LOGO, use_container_width=True)
+LISTA_STATUS = ["Novo", "Em Contato", "Reunião Agendada", "Proposta Enviada", "Contrato Assinado"]
 
-    st.markdown("<h1 style='text-align: center;'>📋 Diagnóstico Estratégico Arkhos</h1>", unsafe_allow_html=True)
+# ==========================================
+# 5. TELA: FORMULÁRIO DE BRIEFING
+# ==========================================
+if tela in ["Formulário de Briefing", "Visualizar Briefing"]:
+    st.header("📋 Diagnóstico Estratégico Arkhos")
     
     st.subheader("1. Perfil Profissional")
     col_p1, col_p2 = st.columns(2)
@@ -98,6 +98,7 @@ if tela == "Formulário de Briefing":
         nome_lead = st.text_input("Nome do Lead / Clínica / Escritório")
     with col_p2:
         nicho_sel = st.selectbox("Nicho de Atuação", ["Advocacia", "Medicina", "Outros"])
+        
         nicho_final = nicho_sel
         if nicho_sel == "Outros":
             nicho_extra = st.text_input("Qual o seu nicho profissional?")
@@ -107,70 +108,56 @@ if tela == "Formulário de Briefing":
         col1, col2 = st.columns(2)
         with col1:
             contato = st.text_input("WhatsApp com DDD")
-            site = st.text_input("Site ou Instagram (URL)")
         with col2:
+            site = st.text_input("Site ou Instagram (URL)")
+
+        st.subheader("2. Raio-X do Negócio")
+        col3, col4 = st.columns(2)
+        with col3:
             faturamento = st.selectbox("Faturamento Médio Mensal", ["Até R$ 20k", "R$ 20k - R$ 100k", "Acima de R$ 100k"])
             investimento = st.selectbox("Investimento Atual em Marketing", ["Nenhum", "Até R$ 2k", "R$ 2k - R$ 10k", "Acima de R$ 10k"])
+        with col4:
+            equipe = st.radio("Possui equipe comercial ou secretária?", ["Sim", "Não"], horizontal=True)
+            meta = st.text_input("Meta de Faturamento em 6 meses")
 
-        st.subheader("2. Detalhes do Negócio")
-        meta = st.text_input("Meta de Faturamento em 6 meses")
+        st.subheader("3. Desafios e Diferenciais")
         diferencial = st.text_area("Seu principal diferencial competitivo")
-        detalhes = st.text_area("Maior obstáculo para o crescimento (Detalhes)")
+        detalhes = st.text_area("Maior obstáculo para o crescimento")
         
         enviar = st.form_submit_button("ENVIAR ANÁLISE ESTRATÉGICA")
 
         if enviar:
-            if nome_lead and contato:
-                supabase = conectar_supabase()
-                if supabase:
-                    novo_registro = {
-                        "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                        "nome": nome_lead, 
-                        "segmento": nicho_final,
-                        "contato": contato,
-                        "faturamento": faturamento, 
-                        "investimento": investimento,
-                        "status": "Novo", 
-                        "meta": meta, 
-                        "site": site,
-                        "diferencial": diferencial, 
-                        "detalhes": detalhes
-                    }
-                    try:
-                        supabase.table("leads_arkhos").insert(novo_registro).execute()
-                        st.success(f"✅ Diagnóstico de '{nome_lead}' enviado com sucesso!")
-                        st.balloons()
-                    except Exception as e:
-                        st.error(f"Erro ao salvar: {e}")
+            if nome_lead and contato and detalhes:
+                id_unico = int(datetime.now().timestamp())
+                novo_registro = {
+                    "id": id_unico,
+                    "data": datetime.now().strftime("%d/%m/%Y"),
+                    "nome": nome_lead, 
+                    "segmento": nicho_final,
+                    "contato": contato,
+                    "faturamento": faturamento, 
+                    "investimento": investimento,
+                    "status": "Novo", 
+                    "meta": meta, 
+                    "site": site,
+                    "diferencial": diferencial, 
+                    "detalhes": detalhes
+                }
+                dados_atuais = carregar_dados()
+                dados_atuais.append(novo_registro)
+                salvar_todos_dados(dados_atuais)
+                st.success(f"✅ Diagnóstico enviado com sucesso!")
             else:
-                st.warning("⚠️ Nome e Contato são obrigatórios.")
+                st.warning("⚠️ Preencha Nome, Contato e Obstáculo.")
 
 # ==========================================
-# 6. TELA: GERENCIAR CRM (SEM LOGO)
+# 6. TELA: GERENCIAR CRM
 # ==========================================
 elif tela == "Gerenciar CRM" and is_admin:
     st.header("📊 Inteligência de Leads & Gestão")
-    
-    supabase = conectar_supabase()
-    if supabase:
-        try:
-            resposta = supabase.table("leads_arkhos").select("*").order("data", desc=True).execute()
-            dados = resposta.data
-            
-            if dados:
-                df = pd.DataFrame(dados)
-                # Editor de dados para você alterar status etc.
-                st.data_editor(df, use_container_width=True, hide_index=True)
-                
-                csv = df.to_csv(index=False).encode('utf-8')
-                st.download_button("Baixar Leads (CSV)", csv, "leads_arkhos.csv", "text/csv")
-            else:
-                st.info("Nenhum lead registrado no banco ainda.")
-        except Exception as e:
-            st.error(f"Erro ao carregar os dados: {e}")
-
-# ==========================================
-# 7. RODAPÉ
-# ==========================================
-st.markdown("---")
-st.caption("Arkhos Tech & Media © 2026 - Ibirité, MG")
+    dados = carregar_dados()
+    if dados:
+        df = pd.DataFrame(dados)
+        st.data_editor(df, use_container_width=True, hide_index=True)
+    else:
+        st.info("Nenhum registro encontrado no banco local.")
