@@ -55,7 +55,7 @@ def conectar_supabase():
         key = st.secrets["SUPABASE_KEY"]
         return create_client(url, key)
     except Exception as e:
-        st.error(f"Erro de conexão: {e}")
+        st.error(f"Erro de conexão com o banco: {e}")
         return None
 
 # ==========================================
@@ -68,26 +68,26 @@ is_admin = st.query_params.get("admin") == MINHA_CHAVE_MESTRA
 URL_LOGO = "https://raw.githubusercontent.com/jlvieiratrafegopago-max/arkhos-crm/main/logo_arkhos.png"
 
 # ==========================================
-# 4. BARRA LATERAL (APENAS ADMIN)
+# 4. DEFINIÇÃO DA TELA
 # ==========================================
 if is_admin:
-    with st.sidebar:
-        st.image(URL_LOGO, use_container_width=True)
-        st.title("Arkhos Tech & Media")
-        st.success("🔑 MODO ADMIN ATIVO")
-        st.markdown("---")
-        tela = st.sidebar.radio("Navegação:", ["Gerenciar CRM", "Formulário de Briefing"])
+    st.sidebar.title("Arkhos Tech & Media")
+    st.sidebar.success("🔑 MODO ADMIN ATIVO")
+    st.sidebar.markdown("---")
+    tela = st.sidebar.radio("Navegação:", ["Gerenciar CRM", "Formulário de Briefing"])
 else:
     tela = "Formulário de Briefing"
 
 # ==========================================
-# 5. TELA: FORMULÁRIO DE BRIEFING
+# 5. TELA: FORMULÁRIO DE BRIEFING (COM LOGO)
 # ==========================================
 if tela == "Formulário de Briefing":
-    # Logo centralizada para o Cliente (CORRIGIDO: Adicionado)
-    col_l1, col_l2, col_l3 = st.columns()
-    with col_l2:
-        st.image(URL_LOGO, use_container_width=True)
+    
+    # EXIBE A LOGO APENAS SE NÃO FOR ADMIN (LINK DO CLIENTE)
+    if not is_admin:
+        col_l1, col_l2, col_l3 = st.columns()
+        with col_l2:
+            st.image(URL_LOGO, use_container_width=True)
 
     st.markdown("<h1 style='text-align: center;'>📋 Diagnóstico Estratégico Arkhos</h1>", unsafe_allow_html=True)
     
@@ -141,15 +141,15 @@ if tela == "Formulário de Briefing":
                         st.success(f"✅ Diagnóstico de '{nome_lead}' enviado com sucesso!")
                         st.balloons()
                     except Exception as e:
-                        st.error(f"Erro ao salvar no banco: {e}")
+                        st.error(f"Erro ao salvar: {e}")
             else:
                 st.warning("⚠️ Nome e Contato são obrigatórios.")
 
 # ==========================================
-# 6. TELA: GERENCIAR CRM (ADMIN)
+# 6. TELA: GERENCIAR CRM (SEM LOGO)
 # ==========================================
 elif tela == "Gerenciar CRM" and is_admin:
-    st.header("📊 Inteligência de Leads & Gestão (Cloud)")
+    st.header("📊 Inteligência de Leads & Gestão")
     
     supabase = conectar_supabase()
     if supabase:
@@ -159,14 +159,15 @@ elif tela == "Gerenciar CRM" and is_admin:
             
             if dados:
                 df = pd.DataFrame(dados)
+                # Editor de dados para você alterar status etc.
                 st.data_editor(df, use_container_width=True, hide_index=True)
                 
                 csv = df.to_csv(index=False).encode('utf-8')
                 st.download_button("Baixar Leads (CSV)", csv, "leads_arkhos.csv", "text/csv")
             else:
-                st.info("Aguardando o primeiro lead entrar no banco...")
+                st.info("Nenhum lead registrado no banco ainda.")
         except Exception as e:
-            st.error(f"Erro ao carregar dados: {e}")
+            st.error(f"Erro ao carregar os dados: {e}")
 
 # ==========================================
 # 7. RODAPÉ
