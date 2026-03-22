@@ -64,7 +64,7 @@ def conectar_supabase():
 MINHA_CHAVE_MESTRA = "arkhos2026" 
 is_admin = st.query_params.get("admin") == MINHA_CHAVE_MESTRA
 
-# URL da sua Logo no GitHub (Certifique-se que o nome do arquivo está correto)
+# URL da sua Logo no GitHub
 URL_LOGO = "https://raw.githubusercontent.com/jlvieiratrafegopago-max/arkhos-crm/main/logo_arkhos.png"
 
 # ==========================================
@@ -76,7 +76,7 @@ if is_admin:
         st.title("Arkhos Tech & Media")
         st.success("🔑 MODO ADMIN ATIVO")
         st.markdown("---")
-        tela = st.radio("Navegação:", ["Gerenciar CRM", "Formulário de Briefing"])
+        tela = st.sidebar.radio("Navegação:", ["Gerenciar CRM", "Formulário de Briefing"])
 else:
     tela = "Formulário de Briefing"
 
@@ -84,7 +84,7 @@ else:
 # 5. TELA: FORMULÁRIO DE BRIEFING
 # ==========================================
 if tela == "Formulário de Briefing":
-    # Logo centralizada para o Cliente
+    # Logo centralizada para o Cliente (CORRIGIDO: Adicionado)
     col_l1, col_l2, col_l3 = st.columns()
     with col_l2:
         st.image(URL_LOGO, use_container_width=True)
