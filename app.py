@@ -2,18 +2,25 @@ import streamlit as st
 from supabase import create_client
 from datetime import datetime
 
-# --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="Arkhos CRM - Dashboard", layout="wide")
+# --- 1. CONFIGURAÇÃO DA PÁGINA (DESIGN) ---
+st.set_page_config(page_title="Arkhos CRM - Gestão Profissional", layout="centered")
 
-# --- FUNÇÃO PARA CONECTAR E SALVAR NO SUPABASE ---
+# --- 2. LOGO DA ARKHOS (Ajuste o link se necessário) ---
+# Coloque aqui o link direto da sua imagem/logo
+logo_url = "https://raw.githubusercontent.com/jlvieiratrafegopago-max/arkhos-crm/main/logo_arkhos.png" 
+st.image(logo_url, width=200)
+
+# --- 3. CONTROLE DE ACESSO (O SEGREDO DO LINK) ---
+query_params = st.query_params
+acesso_admin = query_params.get("admin") == "arkhos2026"
+
+# --- 4. FUNÇÃO PARA SALVAR NO SUPABASE ---
 def salvar_lead_supabase(dados):
-    # O Streamlit busca as chaves automaticamente nos Secrets que você configurou
     try:
         url = st.secrets["SUPABASE_URL"]
         key = st.secrets["SUPABASE_KEY"]
         supabase = create_client(url, key)
         
-        # Prepara o dicionário exatamente como as colunas da nossa tabela SQL
         novo_lead = {
             "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
             "nome": dados.get('nome', ''),
@@ -28,60 +35,51 @@ def salvar_lead_supabase(dados):
             "detalhes": dados.get('detalhes', '')
         }
         
-        # Envia para a tabela 'leads_arkhos' no Supabase
         supabase.table("leads_arkhos").insert(novo_lead).execute()
         return True
     except Exception as e:
-        st.error(f"Erro ao conectar com o banco de dados: {e}")
+        st.error(f"Erro no banco: {e}")
         return False
 
-# --- INTERFACE DO USUÁRIO ---
-st.title("🚀 Arkhos Tech & Media - CRM de Leads")
-st.subheader("Cadastro de Novo Lead (Prospect)")
+# --- 5. LÓGICA DE EXIBIÇÃO ---
+if acesso_admin:
+    st.title("🚀 Arkhos Tech & Media")
+    st.subheader("Painel de Captação de Leads")
 
-with st.form("form_leads", clear_on_submit=True):
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        nome = st.text_input("Nome da Empresa/Cliente")
-        segmento = st.text_input("Segmento de Atuação")
-        contato = st.text_input("WhatsApp / E-mail")
+    with st.form("form_leads", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            nome = st.text_input("Nome da Empresa/Cliente")
+            segmento = st.text_input("Segmento de Atuação")
+            contato = st.text_input("WhatsApp / E-mail")
+        with col2:
+            faturamento = st.selectbox("Faturamento Atual", ["R$ 0 - 5k", "R$ 5k - 20k", "R$ 20k - 50k", "Acima de 50k"])
+            investimento = st.text_input("Pretensão de Investimento")
+            meta = st.text_input("Principal Objetivo")
+        
         site = st.text_input("Site / Redes Sociais")
+        diferencial = st.text_area("Diferencial do Negócio")
+        detalhes = st.text_area("Observações Adicionais")
         
-    with col2:
-        faturamento = st.selectbox("Faturamento Mensal Atual", ["R$ 0 - 5k", "R$ 5k - 20k", "R$ 20k - 50k", "Acima de 50k"])
-        investimento = st.text_input("Quanto pretende investir em tráfego?")
-        meta = st.text_input("Qual o principal objetivo/meta?")
-        diferencial = st.text_area("Qual o diferencial do negócio?")
+        submit = st.form_submit_button("Cadastrar Lead na Nuvem")
 
-    detalhes = st.text_area("Observações adicionais")
-    
-    submit = st.form_submit_button("Cadastrar Lead na Nuvem")
+    if submit:
+        if nome and contato:
+            dados_prospect = {
+                "nome": nome, "segmento": segmento, "contato": contato,
+                "faturamento": faturamento, "investimento": investimento,
+                "meta": meta, "site": site, "diferencial": diferencial, "detalhes": detalhes
+            }
+            if salvar_lead_supabase(dados_prospect):
+                st.success(f"✅ Lead '{nome}' enviado para o Banco de Dados!")
+                st.balloons()
+        else:
+            st.warning("⚠️ Preencha pelo menos Nome e Contato.")
 
-if submit:
-    if nome and contato:
-        # Criamos o dicionário com os dados do formulário
-        dados_prospect = {
-            "nome": nome,
-            "segmento": segmento,
-            "contato": contato,
-            "faturamento": faturamento,
-            "investimento": investimento,
-            "meta": meta,
-            "site": site,
-            "diferencial": diferencial,
-            "detalhes": detalhes
-        }
-        
-        # Chamamos a função de salvar
-        sucesso = salvar_lead_supabase(dados_prospect)
-        
-        if sucesso:
-            st.success(f"✅ Lead '{nome}' salvo com sucesso no banco de dados da Arkhos!")
-            st.balloons()
-    else:
-        st.warning("⚠️ Por favor, preencha pelo menos o Nome e o Contato.")
+else:
+    # Tela para quem não tem o link secreto
+    st.error("🔒 Acesso restrito.")
+    st.info("Este é um sistema interno da Arkhos Tech & Media. Por favor, utilize o link de acesso oficial.")
 
-# --- RODAPÉ ---
 st.markdown("---")
-st.caption("Arkhos Tech & Media © 2026 - Sistema de Gestão de Leads Profissional")
+st.caption("Arkhos Tech & Media © 2026")
