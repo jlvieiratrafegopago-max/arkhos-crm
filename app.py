@@ -156,4 +156,4 @@ elif tela == "Gerenciar CRM" and is_admin:
             st.error(f"Erro ao carregar dados: {e}")
 
 st.markdown("---")
-st.caption("Arkhos Tech & Media © 2026")
+st.caption("Agência Arkhos © 2026")
