@@ -1,103 +1,177 @@
 import streamlit as st
-from supabase import create_client
+import pandas as pd
 from datetime import datetime
+from supabase import create_client
 
-# --- 1. CONFIGURAÇÃO DA PÁGINA (Tema e Layout) ---
+# ==========================================
+# 1. CONFIGURAÇÃO DA PÁGINA E TEMA (ARKHOS PREMIUM)
+# ==========================================
 st.set_page_config(
-    page_title="Arkhos Tech & Media - CRM", 
-    layout="centered", 
-    initial_sidebar_state="collapsed"
+    page_title="Arkhos CRM - Elite Strategic",
+    layout="wide",
+    page_icon="⚖️"
 )
 
-# --- 2. CONTROLE DE ACESSO ---
-query_params = st.query_params
-acesso_admin = query_params.get("admin") == "arkhos2026"
+# Estilização High-End Arkhos (Mantendo seu CSS Original)
+st.markdown("""
+    <style>
+    .stApp { background-color: #1a1a1a; color: #ffffff; }
+    [data-testid="stSidebar"] { background-color: #121212; }
+    h1, h2, h3, p, span, label { color: #e0e0e0 !important; }
+    
+    [data-testid="stInputInstructions"] { display: none !important; }
 
-# --- 3. FUNÇÃO DE SALVAMENTO NO SUPABASE ---
-def salvar_lead_supabase(dados):
+    .stTextInput>div>div>input, .stSelectbox>div>div>select, .stTextArea>div>div>textarea {
+        color: #ffffff !important; 
+        background-color: #333333 !important; 
+        border: 1px solid #444;
+    }
+
+    div.stButton > button {
+        background-color: #d4af37 !important;
+        color: #000000 !important;
+        font-weight: 800 !important;
+        font-size: 18px !important;
+        width: 100%;
+        border-radius: 8px;
+        border: 2px solid #ffffff !important;
+        padding: 0.6rem;
+        text-transform: uppercase;
+    }
+    
+    div.stButton > button:hover {
+        background-color: #ffffff !important;
+        color: #d4af37 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# 2. CONEXÃO COM SUPABASE
+# ==========================================
+def conectar_supabase():
     try:
         url = st.secrets["SUPABASE_URL"]
         key = st.secrets["SUPABASE_KEY"]
-        supabase = create_client(url, key)
-        
-        novo_lead = {
-            "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-            "nome": dados.get('nome', ''),
-            "segmento": dados.get('segmento', ''),
-            "contato": dados.get('contato', ''),
-            "faturamento": dados.get('faturamento', ''),
-            "investimento": dados.get('investimento', ''),
-            "status": "Novo",
-            "meta": dados.get('meta', ''),
-            "site": dados.get('site', ''),
-            "diferencial": dados.get('diferencial', ''),
-            "detalhes": dados.get('detalhes', '')
-        }
-        
-        supabase.table("leads_arkhos").insert(novo_lead).execute()
-        return True
+        return create_client(url, key)
     except Exception as e:
-        st.error(f"Erro na conexão com o banco de dados: {e}")
-        return False
+        st.error(f"Erro de conexão: {e}")
+        return None
 
-# --- 4. LOGO E IDENTIDADE VISUAL ---
-# Centralizando a logo no topo com 3 colunas (Corrigido aqui!)
-col_logo_1, col_logo_2, col_logo_3 = st.columns()
-with col_logo_2:
-    # Link da sua logo no GitHub
-    logo_url = "https://raw.githubusercontent.com/jlvieiratrafegopago-max/arkhos-crm/main/logo_arkhos.png"
-    st.image(logo_url, use_container_width=True)
+# ==========================================
+# 3. CONTROLE DE ACESSO
+# ==========================================
+MINHA_CHAVE_MESTRA = "arkhos2026" 
+is_admin = st.query_params.get("admin") == MINHA_CHAVE_MESTRA
 
-# --- 5. LÓGICA DE EXIBIÇÃO ---
+# ==========================================
+# 4. BARRA LATERAL (LOGO E NAVEGAÇÃO)
+# ==========================================
+# Usando o link do GitHub para a logo ser universal
+logo_url = "https://raw.githubusercontent.com/jlvieiratrafegopago-max/arkhos-crm/main/logo_arkhos.png"
+st.sidebar.image(logo_url, use_container_width=True)
 
-if acesso_admin:
-    # --- VISÃO DO ADMINISTRADOR (Você acessando com ?admin=arkhos2026) ---
-    st.markdown("<h1 style='text-align: center; color: #FFD700;'>🚀 Painel de Gestão Arkhos</h1>", unsafe_allow_html=True)
-    st.sidebar.title("Menu Administrativo")
-    st.sidebar.success("Conectado como Arkhos Admin")
-    st.sidebar.markdown("---")
-    st.sidebar.write("Os leads cadastrados estão sendo enviados para o seu banco no Supabase.")
+st.sidebar.title("Arkhos Tech & Media")
+st.sidebar.markdown("---")
+
+if is_admin:
+    st.sidebar.success("🔑 MODO ADMIN ATIVO")
+    tela = st.sidebar.radio("Navegação:", ["Gerenciar CRM", "Formulário de Briefing"])
 else:
-    # --- VISÃO DO CLIENTE (O que o cliente vê no link normal) ---
-    st.markdown("<h2 style='text-align: center;'>Formulário de Diagnóstico Estratégico</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #cccccc;'>Responda brevemente para iniciarmos sua análise personalizada.</p>", unsafe_allow_html=True)
+    tela = "Formulário de Briefing"
 
-# --- 6. FORMULÁRIO DE CAPTAÇÃO ---
-with st.form("form_leads", clear_on_submit=True):
-    col1, col2 = st.columns(2)
+# ==========================================
+# 5. TELA: FORMULÁRIO DE BRIEFING (ENVIA PARA SUPABASE)
+# ==========================================
+if tela == "Formulário de Briefing":
+    st.header("📋 Diagnóstico Estratégico Arkhos")
     
-    with col1:
-        nome = st.text_input("Nome da Empresa/Cliente")
-        segmento = st.text_input("Segmento de Atuação")
-        contato = st.text_input("WhatsApp / E-mail")
-        site = st.text_input("Site ou Perfil Social")
+    st.subheader("1. Perfil Profissional")
+    col_p1, col_p2 = st.columns(2)
+    
+    with col_p1:
+        nome_lead = st.text_input("Nome do Lead / Clínica / Escritório")
+    with col_p2:
+        nicho_sel = st.selectbox("Nicho de Atuação", ["Advocacia", "Medicina", "Outros"])
+        nicho_final = nicho_sel
+        if nicho_sel == "Outros":
+            nicho_extra = st.text_input("Qual o seu nicho profissional?")
+            nicho_final = f"Outros: {nicho_extra}" if nicho_extra else "Outros"
+
+    with st.form("form_arkhos_web", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            contato = st.text_input("WhatsApp com DDD")
+            site = st.text_input("Site ou Instagram (URL)")
+        with col2:
+            faturamento = st.selectbox("Faturamento Médio Mensal", ["Até R$ 20k", "R$ 20k - R$ 100k", "Acima de R$ 100k"])
+            investimento = st.selectbox("Investimento Atual em Marketing", ["Nenhum", "Até R$ 2k", "R$ 2k - R$ 10k", "Acima de R$ 10k"])
+
+        st.subheader("2. Detalhes do Negócio")
+        meta = st.text_input("Meta de Faturamento em 6 meses")
+        diferencial = st.text_area("Seu principal diferencial competitivo")
+        detalhes = st.text_area("Maior obstáculo para o crescimento (Detalhes)")
         
-    with col2:
-        faturamento = st.selectbox("Faturamento Mensal Atual", ["R$ 0 - 5k", "R$ 5k - 20k", "R$ 20k - 50k", "Acima de 50k"])
-        investimento = st.text_input("Quanto pretende investir?")
-        meta = st.text_input("Principal Objetivo / Meta")
-        diferencial = st.text_area("Seu Diferencial no Mercado")
+        enviar = st.form_submit_button("ENVIAR ANÁLISE ESTRATÉGICA")
 
-    detalhes = st.text_area("Informações Adicionais (Opcional)")
+        if enviar:
+            if nome_lead and contato:
+                supabase = conectar_supabase()
+                if supabase:
+                    novo_registro = {
+                        "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        "nome": nome_lead, 
+                        "segmento": nicho_final,
+                        "contato": contato,
+                        "faturamento": faturamento, 
+                        "investimento": investimento,
+                        "status": "Novo", 
+                        "meta": meta, 
+                        "site": site,
+                        "diferencial": diferencial, 
+                        "detalhes": detalhes
+                    }
+                    # Comando para inserir no Banco de Dados
+                    try:
+                        supabase.table("leads_arkhos").insert(novo_registro).execute()
+                        st.success(f"✅ Diagnóstico de '{nome_lead}' enviado com sucesso!")
+                        st.balloons()
+                    except Exception as e:
+                        st.error(f"Erro ao salvar: {e}")
+            else:
+                st.warning("⚠️ Nome e Contato são obrigatórios.")
+
+# ==========================================
+# 6. TELA: GERENCIAR CRM (LÊ DO SUPABASE)
+# ==========================================
+elif tela == "Gerenciar CRM" and is_admin:
+    st.header("📊 Inteligência de Leads & Gestão (Cloud)")
     
-    # Texto do botão muda conforme o acesso
-    texto_botao = "Enviar para Consultoria Arkhos" if not acesso_admin else "Cadastrar Lead no Banco de Dados"
-    submit = st.form_submit_button(texto_botao)
+    supabase = conectar_supabase()
+    if supabase:
+        try:
+            # Busca todos os dados da tabela
+            resposta = supabase.table("leads_arkhos").select("*").order("data", desc=True).execute()
+            dados = resposta.data
+            
+            if dados:
+                df = pd.DataFrame(dados)
+                # Remove colunas técnicas se houver (como 'id' do banco) para visualização limpa
+                st.data_editor(df, use_container_width=True, hide_index=True)
+                
+                st.download_button(
+                    label="Baixar Leads em CSV",
+                    data=df.to_csv(index=False).encode('utf-8'),
+                    file_name="leads_arkhos_cloud.csv",
+                    mime="text/csv"
+                )
+            else:
+                st.info("Nenhum lead encontrado no banco de dados ainda.")
+        except Exception as e:
+            st.error(f"Erro ao carregar dados: {e}")
 
-if submit:
-    if nome and contato:
-        dados_prospect = {
-            "nome": nome, "segmento": segmento, "contato": contato,
-            "faturamento": faturamento, "investimento": investimento,
-            "meta": meta, "site": site, "diferencial": diferencial, "detalhes": detalhes
-        }
-        # Chamada para o Supabase
-        if salvar_lead_supabase(dados_prospect):
-            st.success(f"✅ Recebemos seus dados, {nome}! Nossa equipe entrará em contato em breve.")
-            st.balloons()
-    else:
-        st.warning("⚠️ Atenção: Nome e Contato são obrigatórios para prosseguirmos.")
-
-# --- RODAPÉ ---
+# ==========================================
+# 7. RODAPÉ
+# ==========================================
 st.markdown("---")
-st.markdown("<p style='text-align: center; color: #888888;'>Arkhos Tech & Media © 2026 | Inteligência em Tráfego e Dados</p>", unsafe_allow_html=True)
+st.caption("Arkhos Tech & Media © 2026 - Gestão de Dados Inteligente")
