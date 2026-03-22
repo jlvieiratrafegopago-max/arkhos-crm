@@ -63,7 +63,7 @@ with st.sidebar:
     except:
         pass
     
-    st.title("Arkhos Tech & Media")
+    st.title("Agência Arkhos")
     st.markdown("---")
 
     if is_admin:
