@@ -2,19 +2,14 @@ import streamlit as st
 from supabase import create_client
 from datetime import datetime
 
-# --- 1. CONFIGURAÇÃO DA PÁGINA (DESIGN) ---
-st.set_page_config(page_title="Arkhos CRM - Gestão Profissional", layout="centered")
+# --- 1. CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Arkhos CRM - Gestão de Leads", layout="wide", initial_sidebar_state="expanded")
 
-# --- 2. LOGO DA ARKHOS (Ajuste o link se necessário) ---
-# Coloque aqui o link direto da sua imagem/logo
-logo_url = "https://raw.githubusercontent.com/jlvieiratrafegopago-max/arkhos-crm/main/logo_arkhos.png" 
-st.image(logo_url, width=200)
-
-# --- 3. CONTROLE DE ACESSO (O SEGREDO DO LINK) ---
+# --- 2. CONTROLE DE ACESSO ---
 query_params = st.query_params
 acesso_admin = query_params.get("admin") == "arkhos2026"
 
-# --- 4. FUNÇÃO PARA SALVAR NO SUPABASE ---
+# --- 3. FUNÇÃO DE CONEXÃO COM SUPABASE ---
 def salvar_lead_supabase(dados):
     try:
         url = st.secrets["SUPABASE_URL"]
@@ -38,48 +33,63 @@ def salvar_lead_supabase(dados):
         supabase.table("leads_arkhos").insert(novo_lead).execute()
         return True
     except Exception as e:
-        st.error(f"Erro no banco: {e}")
+        st.error(f"Erro na conexão com o banco: {e}")
         return False
 
-# --- 5. LÓGICA DE EXIBIÇÃO ---
+# --- 4. VERIFICAÇÃO DE ACESSO ---
 if acesso_admin:
-    st.title("🚀 Arkhos Tech & Media")
-    st.subheader("Painel de Captação de Leads")
+    # --- BARRA LATERAL (SIDEBAR) REATIVADA ---
+    with st.sidebar:
+        # Coloque o link correto da sua logo aqui
+        logo_url = "https://raw.githubusercontent.com/jlvieiratrafegopago-max/arkhos-crm/main/logo_arkhos.png"
+        st.image(logo_url, use_container_width=True)
+        st.markdown("---")
+        st.title("Menu Arkhos")
+        menu = st.radio("Navegação", ["Novo Lead", "Dashboard (Em breve)", "Configurações"])
+        st.info("Logado como Administrador")
 
-    with st.form("form_leads", clear_on_submit=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            nome = st.text_input("Nome da Empresa/Cliente")
-            segmento = st.text_input("Segmento de Atuação")
-            contato = st.text_input("WhatsApp / E-mail")
-        with col2:
-            faturamento = st.selectbox("Faturamento Atual", ["R$ 0 - 5k", "R$ 5k - 20k", "R$ 20k - 50k", "Acima de 50k"])
-            investimento = st.text_input("Pretensão de Investimento")
-            meta = st.text_input("Principal Objetivo")
+    # --- CONTEÚDO PRINCIPAL ---
+    if menu == "Novo Lead":
+        st.title("🚀 Arkhos Tech & Media")
+        st.subheader("Captura Profissional de Leads")
         
-        site = st.text_input("Site / Redes Sociais")
-        diferencial = st.text_area("Diferencial do Negócio")
-        detalhes = st.text_area("Observações Adicionais")
-        
-        submit = st.form_submit_button("Cadastrar Lead na Nuvem")
+        with st.form("form_leads", clear_on_submit=True):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                nome = st.text_input("Nome da Empresa/Cliente")
+                segmento = st.text_input("Segmento de Atuação")
+                contato = st.text_input("WhatsApp / E-mail")
+                site = st.text_input("Site / Redes Sociais")
+                
+            with col2:
+                faturamento = st.selectbox("Faturamento Atual", ["R$ 0 - 5k", "R$ 5k - 20k", "R$ 20k - 50k", "Acima de 50k"])
+                investimento = st.text_input("Investimento em Tráfego")
+                meta = st.text_input("Principal Meta")
+                diferencial = st.text_area("Diferencial Competitivo")
 
-    if submit:
-        if nome and contato:
-            dados_prospect = {
-                "nome": nome, "segmento": segmento, "contato": contato,
-                "faturamento": faturamento, "investimento": investimento,
-                "meta": meta, "site": site, "diferencial": diferencial, "detalhes": detalhes
-            }
-            if salvar_lead_supabase(dados_prospect):
-                st.success(f"✅ Lead '{nome}' enviado para o Banco de Dados!")
-                st.balloons()
-        else:
-            st.warning("⚠️ Preencha pelo menos Nome e Contato.")
+            detalhes = st.text_area("Notas Adicionais")
+            
+            submit = st.form_submit_button("Finalizar e Salvar no Banco")
+
+        if submit:
+            if nome and contato:
+                dados_prospect = {
+                    "nome": nome, "segmento": segmento, "contato": contato,
+                    "faturamento": faturamento, "investimento": investimento,
+                    "meta": meta, "site": site, "diferencial": diferencial, "detalhes": detalhes
+                }
+                if salvar_lead_supabase(dados_prospect):
+                    st.success(f"✅ Lead '{nome}' registrado com sucesso!")
+                    st.balloons()
+            else:
+                st.warning("⚠️ Nome e Contato são obrigatórios.")
+
+    # --- RODAPÉ ---
+    st.markdown("---")
+    st.caption("Arkhos Tech & Media © 2026 - Ibirité, MG")
 
 else:
-    # Tela para quem não tem o link secreto
-    st.error("🔒 Acesso restrito.")
-    st.info("Este é um sistema interno da Arkhos Tech & Media. Por favor, utilize o link de acesso oficial.")
-
-st.markdown("---")
-st.caption("Arkhos Tech & Media © 2026")
+    # TELA DE BLOQUEIO
+    st.warning("🔒 Acesso Restrito à Arkhos Tech & Media.")
+    st.info("Por favor, acesse através do link de administrador configurado.")
