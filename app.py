@@ -12,7 +12,7 @@ st.set_page_config(
     page_icon="⚖️"
 )
 
-# Estilização High-End Arkhos (Mantendo seu CSS Original)
+# Estilização High-End Arkhos
 st.markdown("""
     <style>
     .stApp { background-color: #1a1a1a; color: #ffffff; }
@@ -64,27 +64,32 @@ def conectar_supabase():
 MINHA_CHAVE_MESTRA = "arkhos2026" 
 is_admin = st.query_params.get("admin") == MINHA_CHAVE_MESTRA
 
-# ==========================================
-# 4. BARRA LATERAL (LOGO E NAVEGAÇÃO)
-# ==========================================
-# Usando o link do GitHub para a logo ser universal
-logo_url = "https://raw.githubusercontent.com/jlvieiratrafegopago-max/arkhos-crm/main/logo_arkhos.png"
-st.sidebar.image(logo_url, use_container_width=True)
+# URL da sua Logo no GitHub (Certifique-se que o nome do arquivo está correto)
+URL_LOGO = "https://raw.githubusercontent.com/jlvieiratrafegopago-max/arkhos-crm/main/logo_arkhos.png"
 
-st.sidebar.title("Arkhos Tech & Media")
-st.sidebar.markdown("---")
-
+# ==========================================
+# 4. BARRA LATERAL (APENAS ADMIN)
+# ==========================================
 if is_admin:
-    st.sidebar.success("🔑 MODO ADMIN ATIVO")
-    tela = st.sidebar.radio("Navegação:", ["Gerenciar CRM", "Formulário de Briefing"])
+    with st.sidebar:
+        st.image(URL_LOGO, use_container_width=True)
+        st.title("Arkhos Tech & Media")
+        st.success("🔑 MODO ADMIN ATIVO")
+        st.markdown("---")
+        tela = st.radio("Navegação:", ["Gerenciar CRM", "Formulário de Briefing"])
 else:
     tela = "Formulário de Briefing"
 
 # ==========================================
-# 5. TELA: FORMULÁRIO DE BRIEFING (ENVIA PARA SUPABASE)
+# 5. TELA: FORMULÁRIO DE BRIEFING
 # ==========================================
 if tela == "Formulário de Briefing":
-    st.header("📋 Diagnóstico Estratégico Arkhos")
+    # Logo centralizada para o Cliente
+    col_l1, col_l2, col_l3 = st.columns()
+    with col_l2:
+        st.image(URL_LOGO, use_container_width=True)
+
+    st.markdown("<h1 style='text-align: center;'>📋 Diagnóstico Estratégico Arkhos</h1>", unsafe_allow_html=True)
     
     st.subheader("1. Perfil Profissional")
     col_p1, col_p2 = st.columns(2)
@@ -131,18 +136,17 @@ if tela == "Formulário de Briefing":
                         "diferencial": diferencial, 
                         "detalhes": detalhes
                     }
-                    # Comando para inserir no Banco de Dados
                     try:
                         supabase.table("leads_arkhos").insert(novo_registro).execute()
                         st.success(f"✅ Diagnóstico de '{nome_lead}' enviado com sucesso!")
                         st.balloons()
                     except Exception as e:
-                        st.error(f"Erro ao salvar: {e}")
+                        st.error(f"Erro ao salvar no banco: {e}")
             else:
                 st.warning("⚠️ Nome e Contato são obrigatórios.")
 
 # ==========================================
-# 6. TELA: GERENCIAR CRM (LÊ DO SUPABASE)
+# 6. TELA: GERENCIAR CRM (ADMIN)
 # ==========================================
 elif tela == "Gerenciar CRM" and is_admin:
     st.header("📊 Inteligência de Leads & Gestão (Cloud)")
@@ -150,23 +154,17 @@ elif tela == "Gerenciar CRM" and is_admin:
     supabase = conectar_supabase()
     if supabase:
         try:
-            # Busca todos os dados da tabela
             resposta = supabase.table("leads_arkhos").select("*").order("data", desc=True).execute()
             dados = resposta.data
             
             if dados:
                 df = pd.DataFrame(dados)
-                # Remove colunas técnicas se houver (como 'id' do banco) para visualização limpa
                 st.data_editor(df, use_container_width=True, hide_index=True)
                 
-                st.download_button(
-                    label="Baixar Leads em CSV",
-                    data=df.to_csv(index=False).encode('utf-8'),
-                    file_name="leads_arkhos_cloud.csv",
-                    mime="text/csv"
-                )
+                csv = df.to_csv(index=False).encode('utf-8')
+                st.download_button("Baixar Leads (CSV)", csv, "leads_arkhos.csv", "text/csv")
             else:
-                st.info("Nenhum lead encontrado no banco de dados ainda.")
+                st.info("Aguardando o primeiro lead entrar no banco...")
         except Exception as e:
             st.error(f"Erro ao carregar dados: {e}")
 
@@ -174,4 +172,4 @@ elif tela == "Gerenciar CRM" and is_admin:
 # 7. RODAPÉ
 # ==========================================
 st.markdown("---")
-st.caption("Arkhos Tech & Media © 2026 - Gestão de Dados Inteligente")
+st.caption("Arkhos Tech & Media © 2026 - Ibirité, MG")
